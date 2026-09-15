@@ -30,13 +30,15 @@ jobs:
       - name: Alert rules reference documented metrics
         run: |
           fail=0
-          # Extract exprs and check each referenced metric family appears in
-          # README (matrix/conventions) or is a well-known recording name.
+          # Extract exprs, strip histogram suffixes to the family name, and
+          # check each referenced family appears in the README inventory or
+          # is a well-known recording name.
           while IFS= read -r metric; do
             case "$metric" in
               up|time|absent|histogram_quantile|clamp_min|rate|increase|sum|min|changes|timestamp) continue ;;
             esac
-            if ! grep -q "$metric" README.md; then
+            family=$(echo "$metric" | sed -E 's/_(bucket|sum|count)$//')
+            if ! grep -q "$family" README.md; then
               echo "::error::alert references undocumented metric: $metric"
               fail=1
             fi
