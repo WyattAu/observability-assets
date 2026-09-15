@@ -14,7 +14,7 @@ jobs:
       - name: YAML lint
         run: |
           pipx install yamllint
-          yamllint -d "{extends: default, rules: {line-length: {max: 120}, document-start: disable}}" victoriametrics/ alerts/ .github/
+          yamllint victoriametrics/ alerts/ .github/workflows/
 
       - name: Dashboards are well-formed JSON with required fields
         run: |
