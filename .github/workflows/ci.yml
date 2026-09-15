@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: YAML lint
+        run: |
+          pipx install yamllint
+          yamllint -d "{extends: default, rules: {line-length: {max: 120}, document-start: disable}}" victoriametrics/ alerts/ .github/
+
+      - name: Dashboards are well-formed JSON with required fields
+        run: |
+          fail=0
+          for f in dashboards/*.json; do
+            jq -e '.title and (.panels | length > 0) and .schemaVersion' "$f" >/dev/null \
+              || { echo "::error::$f missing title/panels/schemaVersion"; fail=1; }
+            grep -q '"uid"' "$f" || { echo "::error::$f missing stable uid"; fail=1; }
+            grep -q 'wyattau' "$f" || { echo "::error::$f missing wyattau tag"; fail=1; }
+          done
+          exit $fail
+
+      - name: Alert rules reference documented metrics
+        run: |
+          fail=0
+          # Extract exprs and check each referenced metric family appears in
+          # README (matrix/conventions) or is a well-known recording name.
+          while IFS= read -r metric; do
+            case "$metric" in
+              up|time|absent|histogram_quantile|clamp_min|rate|increase|sum|min|changes|timestamp) continue ;;
+            esac
+            if ! grep -q "$metric" README.md; then
+              echo "::error::alert references undocumented metric: $metric"
+              fail=1
+            fi
+          done < <(grep -oE '[a-z_]+_(total|bucket|bytes|seconds|healthy|generation|info)' alerts/rules.yml | sort -u)
+          exit $fail
+
+      - name: No real secrets committed
+        run: |
+          ! grep -rE '(bearer_token|X-Metrics-Token|api_key): *"[^<]' victoriametrics/ alerts/

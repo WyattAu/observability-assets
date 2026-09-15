@@ -1,0 +1,132 @@
+# vmalert rules (Prometheus rule format) for the WyattAu estate.
+# Metric names reference the shipping builds documented in README.md.
+groups:
+  # ── Generic service health (applies to every scrape) ──────────────
+  - name: generic
+    interval: 30s
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Scrape target {{ $labels.job }}/{{ $labels.instance }} is down"
+          runbook: https://github.com/WyattAu/observability-assets#runbooks
+
+      - alert: ScrapeFailed
+        expr: up == 0 or absent(up)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Scrape failing for {{ $labels.job }}"
+
+      - alert: MetricsStale
+        expr: time() - timestamp(up) > 120
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No fresh samples for {{ $labels.job }} in 2m"
+
+  # ── vane edge proxy ───────────────────────────────────────────────
+  - name: vane
+    interval: 30s
+    rules:
+      - alert: VaneHighUpstreamErrorRate
+        expr: >
+          sum(rate(vane_upstream_errors_total[5m]))
+          /
+          clamp_min(sum(rate(vane_http_requests_total[5m])), 1e-9)
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "vane upstream error rate above 5% for 5m"
+
+      - alert: VaneP99LatencyHigh
+        # vane_request_duration_us is in microseconds; 50 ms = 50000 µs.
+        expr: >
+          histogram_quantile(
+            0.99,
+            sum by (le) (rate(vane_request_duration_us_bucket[5m]))
+          ) > 50000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "vane p99 request latency above 50 ms for 10m"
+
+      - alert: VaneBreakerRejecting
+        expr: increase(vane_breaker_rejected_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "vane circuit breakers rejected >100 requests in 5m"
+
+      - alert: VaneRateLimitSurge
+        expr: increase(vane_ratelimit_rejected_total[5m]) > 1000
+        labels:
+          severity: info
+        annotations:
+          summary: "vane rate limiter rejected >1000 requests in 5m (possible abuse or incident)"
+
+      - alert: VaneConfigStuck
+        expr: increases(vane_config_generation[30m]) == 0
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "vane config generation has not advanced in 30m (expected during quiet periods; check if unexpected)"
+
+  # ── Evergreen shims ───────────────────────────────────────────────
+  - name: shims
+    interval: 30s
+    rules:
+      - alert: ShimCapabilityUnhealthy
+        expr: shim_capabilities_healthy == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Shim {{ $labels.instance }} reports unhealthy capabilities"
+
+  # ── rankhub ───────────────────────────────────────────────────────
+  - name: rankhub
+    interval: 30s
+    rules:
+      - alert: RankhubApiRestarted
+        expr: changes(rankhub_uptime_seconds[10m]) > 0
+        labels:
+          severity: info
+        annotations:
+          summary: "rankhub API restarted (uptime counter reset)"
+
+      - alert: RankhubMemoryHigh
+        expr: rankhub_memory_heap_bytes > 800 * 1024 * 1024
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "rankhub heap above 800 MB for 10m (OOM-postmortem budget)"
+
+  # ── clawdius gateway ──────────────────────────────────────────────
+  - name: clawdius
+    interval: 30s
+    rules:
+      - alert: ClawdiusSandboxExecutionSurge
+        expr: increase(clawdius_sandbox_executions_total[15m]) > 500
+        labels:
+          severity: info
+        annotations:
+          summary: "clawdius sandbox executions surged (>500 in 15m)"
+
+      - alert: ClawdiusLlmRequestSurge
+        expr: increase(clawdius_llm_requests_total[15m]) > 1000
+        labels:
+          severity: info
+        annotations:
+          summary: "clawdius LLM request volume surged (>1000 in 15m) — check quota/billing"

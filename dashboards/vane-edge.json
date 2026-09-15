@@ -1,0 +1,80 @@
+{
+  "title": "vane — Edge Proxy",
+  "uid": "wyatt-vane-edge",
+  "tags": ["wyattau", "vane", "edge"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "15s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Requests / sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "targets": [
+        { "expr": "sum(rate(vane_http_requests_total[1m]))", "legendFormat": "total", "refId": "A" },
+        { "expr": "sum(rate(vane_http_responses_total[1m]))", "legendFormat": "responses", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "id": 2,
+      "title": "Bytes in / out (1m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "targets": [
+        { "expr": "sum(rate(vane_bytes_in_total[1m])) * 8", "legendFormat": "in", "refId": "A" },
+        { "expr": "sum(rate(vane_bytes_out_total[1m])) * 8", "legendFormat": "out", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bps" }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "title": "Request latency (µs) — p50 / p99",
+      "description": "vane_request_duration_us is a histogram with microsecond base values.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(vane_request_duration_us_bucket[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(vane_request_duration_us_bucket[5m])))",
+          "legendFormat": "p99",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "µs" }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "title": "Upstream errors / breaker / ratelimit rejects",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "targets": [
+        { "expr": "sum(increase(vane_upstream_errors_total[5m]))", "legendFormat": "upstream errors", "refId": "A" },
+        { "expr": "sum(increase(vane_breaker_rejected_total[5m]))", "legendFormat": "breaker rejects", "refId": "B" },
+        { "expr": "sum(increase(vane_ratelimit_rejected_total[5m]))", "legendFormat": "ratelimit rejects", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 5,
+      "title": "Config generation",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "targets": [
+        { "expr": "max(vane_config_generation)", "refId": "A" }
+      ]
+    }
+  ]
+}

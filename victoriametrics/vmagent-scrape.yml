@@ -1,0 +1,82 @@
+# vmagent scrape configuration for the WyattAu estate.
+# Placeholders: <token> values come from the secrets manager — never commit
+# real tokens. Endpoints marked TODO need their ports confirmed at deploy.
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    estate: wyattau
+    env: production
+
+scrape_configs:
+  # ── vane edge proxy ────────────────────────────────────────────────
+  # Admin plane is network-isolated; scrape over the internal interface.
+  - job_name: vane
+    static_configs:
+      - targets:
+          - vane-edge-1.internal:8199 # TODO: confirm admin port per deploy
+        labels:
+          service: vane
+          component: edge
+
+  # ── clawdius gateway ───────────────────────────────────────────────
+  - job_name: clawdius-gateway
+    static_configs:
+      - targets:
+          - clawdius-gateway.internal:9100 # TODO: confirm port
+        labels:
+          service: clawdius
+          component: gateway
+
+  # ── crawlkit API (bearer token) ────────────────────────────────────
+  - job_name: crawlkit-api
+    bearer_token: "<token:crawlkit-metrics>"
+    static_configs:
+      - targets:
+          - crawlkit-api.internal:8080 # TODO: confirm port
+        labels:
+          service: crawlkit
+          component: api
+
+  # ── Evergreen shims (:9101 /metrics + /healthz) ────────────────────
+  - job_name: evergreen-shims
+    static_configs:
+      - targets:
+          - shim-postgres.internal:9101
+          - shim-redis.internal:9101
+        labels:
+          service: evergreen-shims
+          component: shim
+
+  # ── ecom-engine verticals (kp_ecom, homebite) ──────────────────────
+  - job_name: ecom-engine
+    bearer_token: "<token:ecom-metrics>"
+    static_configs:
+      - targets:
+          - kp-ecom.internal:8080 # TODO: confirm port
+          - homebite.internal:8080
+        labels:
+          service: ecom-engine
+          component: api
+
+  # ── cryptgpt API ───────────────────────────────────────────────────
+  - job_name: cryptgpt-api
+    headers:
+      X-Metrics-Token: "<token:cryptgpt-metrics>"
+    static_configs:
+      - targets:
+          - cryptgpt-api.internal:8080 # TODO: confirm port
+        labels:
+          service: cryptgpt
+          component: api
+
+  # ── rankhub API (bearer) ───────────────────────────────────────────
+  - job_name: rankhub-api
+    bearer_token: "<token:rankhub-metrics>"
+    static_configs:
+      - targets:
+          - rankhub-api.internal:8080 # TODO: confirm port
+        labels:
+          service: rankhub
+          component: api
