@@ -44,6 +44,33 @@ dashboards/        Grafana dashboard JSON, one file per service
   (IDs, paths, emails) in labels. `metrics-kit` registries enforce a series
   budget; this repo's alerts assume it held.
 
+## Canonical metric inventory
+
+Every metric referenced by `alerts/rules.yml` or `dashboards/`, with its
+emitting build. Adding an alert for a new metric requires a row here.
+
+| Metric | Type | Emitted by |
+|---|---|---|
+| `up` | gauge | vmagent (synthetic scrape health) |
+| `vane_http_requests_total` | counter | vane |
+| `vane_http_responses_total` | counter | vane |
+| `vane_bytes_in_total` | counter | vane |
+| `vane_bytes_out_total` | counter | vane |
+| `vane_upstream_errors_total` | counter | vane |
+| `vane_breaker_rejected_total` | counter | vane |
+| `vane_ratelimit_rejected_total` | counter | vane |
+| `vane_request_duration_us` (+`_bucket`/`_sum`/`_count`) | histogram | vane |
+| `vane_config_generation` | gauge | vane |
+| `shim_capabilities_healthy` | gauge | EvergreenShims (:9101) |
+| `rankhub_uptime_seconds` | gauge | rankhub-api |
+| `rankhub_memory_heap_bytes` | gauge | rankhub-api |
+| `rankhub_version_info` | info | rankhub-api |
+| `rankhub_total_items` | gauge | rankhub-api |
+| `clawdius_llm_requests_total` | counter | clawdius gateway |
+| `clawdius_sandbox_executions_total` | counter | clawdius gateway |
+| `process_resident_memory_bytes` | gauge | all Rust builds (process collector) |
+| `process_cpu_seconds_total` | counter | all Rust builds (process collector) |
+
 ## Deploying
 
 1. **vmagent**: `victoriametrics/vmagent-scrape.yml` — fill `<token>`
