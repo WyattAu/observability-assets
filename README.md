@@ -1,7 +1,7 @@
 # observability-assets
 
 Central VictoriaMetrics + Grafana assets for every shipping WyattAu build:
-scrape configuration, alert rules, and dashboards — one canonical home so
+scrape configuration, alert rules, and dashboards; one canonical home so
 metric names, alerts, and dashboards stop drifting across repos.
 
 ## Why this exists
@@ -31,7 +31,7 @@ dashboards/        Grafana dashboard JSON, one file per service
 | ecom-engine (kp_ecom, homebite) | `git.wyattau.com/Kiln/ecom-engine` | engine `/metrics` route | `METRICS_TOKEN` | `dashboards/generic-rust-service.json` | generic group |
 | cryptgpt API | `git.wyattau.com/cryptgpt/cryptgpt_mono` | `/metrics` | `METRICS_TOKEN` header | `dashboards/generic-rust-service.json` | generic group |
 | rankhub API | `git.wyattau.com/Rankhub/rankhub_app` | `/api/metrics` | `METRICS_TOKEN` bearer or admin JWT | `dashboards/generic-rust-service.json` | generic group |
-| kestrel / desktop clients | `WyattAu/kestrel` | none — telemetry banned by threat model §6 | — | — | — |
+| kestrel / desktop clients | `WyattAu/kestrel` | none; telemetry banned by threat model §6 |; |; |; |
 
 ## Metric naming convention
 
@@ -73,7 +73,7 @@ emitting build. Adding an alert for a new metric requires a row here.
 
 ## Deploying
 
-1. **vmagent**: `victoriametrics/vmagent-scrape.yml` — fill `<token>`
+1. **vmagent**: `victoriametrics/vmagent-scrape.yml`; fill `<token>`
    placeholders from your secrets manager, then run:
    `vmagent -promscrape.config=victoriametrics/vmagent-scrape.yml`
 2. **vmalert**:
